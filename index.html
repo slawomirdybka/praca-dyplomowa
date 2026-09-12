@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konsultacje pracy dyplomowej</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --paper-raised:#FFFFFF;
+    --ink:#242222;
+    --ink-soft:#5B564D;
+    --line:#DED7C6;
+    --navy:#243350;
+    --navy-soft:#3C4C6E;
+    --gold:#A97E24;
+    --gold-bg:#F4E9D2;
+    --green:#3F6148;
+    --green-bg:#E4EDE3;
+    --rust:#95402A;
+    --rust-bg:#F3E1D8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  h1,h2,h3{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    margin:0;
+    color:var(--ink);
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+  }
+  input,textarea,select{
+    font-family:inherit;
+    font-size:14px;
+  }
+
+  /* ---------- Ekran startowy ---------- */
+  #gate{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .gate-card{
+    max-width:440px;
+    width:100%;
+  }
+  .gate-title{
+    font-size:28px;
+    margin-bottom:6px;
+  }
+  .gate-sub{
+    color:var(--ink-soft);
+    margin-bottom:32px;
+    font-size:15px;
+  }
+  .role-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+  }
+  .role-btn{
+    flex:1;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    padding:14px 10px;
+    text-align:left;
+    border-radius:3px;
+  }
+  .role-btn strong{
+    display:block;
+    font-family:'Source Serif 4',serif;
+    font-size:16px;
+    margin-bottom:2px;
+  }
+  .role-btn span{
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+  .role-btn.active{
+    border-color:var(--navy);
+    box-shadow:inset 0 0 0 1px var(--navy);
+  }
+  .field-label{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+    display:block;
+  }
+  .field{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--paper-raised);
+    margin-bottom:16px;
+  }
+  .primary-btn{
+    background:var(--navy);
+    color:#fff;
+    padding:11px 20px;
+    border-radius:3px;
+    font-size:14px;
+    font-weight:500;
+  }
+  .primary-btn:hover{ background:var(--navy-soft); }
+  .primary-btn:disabled{ opacity:.5; cursor:default; }
+  .gate-error{
+    color:var(--rust);
+    font-size:13px;
+    margin-top:-8px;
+    margin-bottom:16px;
+  }
+  .student-pick-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .student-chip{
+    padding:7px 12px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--paper-raised);
+    font-size:13px;
+  }
+  .student-chip.selected{
+    border-color:var(--navy);
+    background:var(--navy);
+    color:#fff;
+  }
+  .or-divider{
+    color:var(--ink-soft);
+    font-size:12px;
+    margin:10px 0;
+  }
+
+  /* ---------- Aplikacja ---------- */
+  #app{ display:none; min-height:100vh; }
+  .app-shell{
+    display:flex;
+    min-height:100vh;
+  }
+  .sidebar{
+    width:280px;
+    flex-shrink:0;
+    background:var(--paper-raised);
+    border-right:1px solid var(--line);
+    padding:24px 20px;
+    display:flex;
+    flex-direction:column;
+  }
+  .brand{
+    margin-bottom:28px;
+  }
+  .brand h1{ font-size:19px; line-height:1.3; }
+  .brand .who{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .sidebar-section-label{
+    font-size:11px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin:18px 0 10px;
+  }
+  .sidebar-list{
+    flex:1;
+    overflow-y:auto;
+  }
+  .sidebar-item{
+    padding:10px 10px;
+    border-radius:3px;
+    margin-bottom:2px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:14px;
+  }
+  .sidebar-item:hover{ background:var(--paper); }
+  .sidebar-item.active{ background:var(--gold-bg); }
+  .sidebar-item .count{
+    font-size:11px;
+    color:var(--ink-soft);
+    background:var(--paper);
+    padding:2px 7px;
+    border-radius:10px;
+  }
+  .add-student-row{
+    display:flex;
+    gap:6px;
+    margin-top:6px;
+  }
+  .add-student-row input{
+    flex:1;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:13px;
+  }
+  .add-student-row button{
+    background:var(--navy);
+    color:#fff;
+    padding:0 12px;
+    border-radius:3px;
+    font-size:13px;
+  }
+  .logout-link{
+    margin-top:16px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    background:none;
+    text-align:left;
+    padding:0;
+  }
+
+  .main{
+    flex:1;
+    padding:36px 44px;
+    max-width:900px;
+  }
+  .main-header{
+    margin-bottom:28px;
+  }
+  .main-header h2{ font-size:24px; }
+  .main-header .sub{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin-top:4px;
+  }
+
+  .empty-state{
+    border:1px dashed var(--line);
+    border-radius:4px;
+    padding:40px 24px;
+    text-align:center;
+    color:var(--ink-soft);
+  }
+
+  .task-row{
+    border-top:1px solid var(--line);
+    padding:16px 4px;
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    cursor:pointer;
+  }
+  .task-row:last-child{ border-bottom:1px solid var(--line); }
+  .task-row:hover{ background:rgba(0,0,0,.015); }
+  .task-order{
+    font-family:'Source Serif 4',serif;
+    color:var(--ink-soft);
+    font-size:14px;
+    width:20px;
+    padding-top:2px;
+  }
+  .task-row-main{ flex:1; }
+  .task-row-title{
+    font-size:15.5px;
+    font-weight:500;
+    margin-bottom:3px;
+  }
+  .task-row-desc{
+    font-size:13px;
+    color:var(--ink-soft);
+    max-width:60ch;
+  }
+  .status-dot{
+    display:inline-block;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    margin-right:6px;
+    position:relative;
+    top:-1px;
+  }
+  .status-pill{
+    font-size:12px;
+    padding:4px 10px 4px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .status-todo{ background:#EEEAE0; color:var(--ink-soft); }
+  .status-todo .status-dot{ background:#A6A093; }
+  .status-review{ background:var(--gold-bg); color:var(--gold); }
+  .status-review .status-dot{ background:var(--gold); }
+  .status-accepted{ background:var(--green-bg); color:var(--green); }
+  .status-accepted .status-dot{ background:var(--green); }
+  .status-rework{ background:var(--rust-bg); color:var(--rust); }
+  .status-rework .status-dot{ background:var(--rust); }
+
+  .deadline-tag{
+    font-size:12px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .deadline-tag.overdue{ color:var(--rust); font-weight:500; }
+  .task-detail-deadline{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:14px;
+  }
+  .task-detail-deadline.overdue{ color:var(--rust); font-weight:500; }
+  .task-row-right{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
+  }
+  .file-hint{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:5px;
+  }
+  .attachment-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:var(--navy);
+    text-decoration:none;
+    border:1px solid var(--line);
+    padding:6px 11px;
+    border-radius:20px;
+    margin-top:8px;
+    background:var(--paper-raised);
+  }
+  .attachment-link:hover{ border-color:var(--navy); }
+
+  .progress-chart{ margin-top:4px; }
+  .progress-legend{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  .progress-legend .dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    margin:0 5px 0 14px;
+    position:relative;
+    top:-1px;
+  }
+  .progress-legend .dot:first-child{ margin-left:0; }
+  .progress-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .progress-row .name{
+    width:140px;
+    flex-shrink:0;
+    font-size:13.5px;
+  }
+  .progress-track{
+    flex:1;
+    height:10px;
+    background:var(--paper);
+    border-radius:6px;
+    position:relative;
+  }
+  .progress-fill{
+    height:100%;
+    border-radius:6px;
+    background:var(--navy);
+  }
+  .progress-fill.behind{ background:var(--rust); }
+  .avg-marker{
+    position:absolute;
+    top:-4px;
+    bottom:-4px;
+    width:2px;
+    background:var(--gold);
+  }
+  .progress-pct{
+    width:42px;
+    text-align:right;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    flex-shrink:0;
+  }
+
+  .new-task-card{
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px;
+    margin-bottom:28px;
+    background:var(--paper-raised);
+  }
+  .new-task-card h3{ font-size:16px; margin-bottom:14px; }
+  .quick-titles{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .quick-title-btn{
+    background:var(--paper);
+    border:1px solid var(--line);
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12.5px;
+  }
+  .quick-title-btn:hover{ border-color:var(--navy); }
+  .form-row{ margin-bottom:14px; }
+  .form-row label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .form-row input, .form-row textarea{
+    width:100%;
+    padding:9px 11px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#fff;
+  }
+  .form-row textarea{ resize:vertical; min-height:70px; }
+
+  /* ---------- Panel szczegółów zadania ---------- */
+  .task-detail{
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:var(--paper-raised);
+    padding:26px 28px;
+  }
+  .task-detail-back{
+    background:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    margin-bottom:16px;
+    padding:0;
+    text-decoration:underline;
+  }
+  .task-detail-title{
+    font-size:21px;
+    margin-bottom:6px;
+  }
+  .task-detail-desc{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin-bottom:20px;
+    max-width:65ch;
+  }
+  .timeline{
+    border-top:1px solid var(--line);
+    padding-top:18px;
+    margin-top:6px;
+  }
+  .timeline-item{
+    display:flex;
+    gap:14px;
+    margin-bottom:18px;
+  }
+  .timeline-marker{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    margin-top:6px;
+    flex-shrink:0;
+    background:var(--ink-soft);
+  }
+  .timeline-marker.accepted{ background:var(--green); }
+  .timeline-marker.rework{ background:var(--rust); }
+  .timeline-marker.submission{ background:var(--gold); }
+  .timeline-body{ flex:1; }
+  .timeline-meta{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .timeline-text{
+    font-size:14.5px;
+    white-space:pre-wrap;
+  }
+  .timeline-decision{
+    display:inline-block;
+    font-size:12px;
+    padding:2px 9px;
+    border-radius:20px;
+    margin-bottom:6px;
+  }
+  .action-box{
+    border-top:1px solid var(--line);
+    margin-top:20px;
+    padding-top:20px;
+  }
+  .action-box h4{
+    font-family:'Source Serif 4',serif;
+    font-size:15px;
+    margin-bottom:10px;
+    font-weight:600;
+  }
+  .decision-row{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .accept-btn{
+    background:var(--green);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:3px;
+    font-size:13.5px;
+  }
+  .reject-btn{
+    background:var(--rust);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:3px;
+    font-size:13.5px;
+  }
+  .loading-note{
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:40px;
+  }
+
+  @media (max-width:760px){
+    .app-shell{ flex-direction:column; }
+    .sidebar{ width:100%; border-right:none; border-bottom:1px solid var(--line); }
+    .main{ padding:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-title">Konsultacje pracy dyplomowej</div>
+    <div class="gate-sub">Wyznaczanie i sprawdzanie kolejnych etapów pracy — tytuł, plan, wstęp, ankieta i dalej.</div>
+
+    <div class="role-row">
+      <button class="role-btn active" id="roleStudentBtn" onclick="selectRole('student')">
+        <strong>Jestem studentem</strong>
+        <span>Przesyłam zadania i widzę komentarze</span>
+      </button>
+      <button class="role-btn" id="roleTeacherBtn" onclick="selectRole('teacher')">
+        <strong>Jestem prowadzącym</strong>
+        <span>Wyznaczam i oceniam zadania</span>
+      </button>
+    </div>
+
+    <div id="studentGateFields">
+      <label class="field-label">Wybierz się z listy (jeśli już istniejesz)</label>
+      <div class="student-pick-list" id="studentPickList"></div>
+      <div class="or-divider">— lub podaj imię i nazwisko, jeśli logujesz się pierwszy raz —</div>
+      <label class="field-label" for="studentNameInput">Imię i nazwisko</label>
+      <input class="field" id="studentNameInput" placeholder="np. Anna Kowalska" oninput="clearStudentPick()">
+      <label class="field-label" for="studentPasswordInput">Hasło</label>
+      <input class="field" type="password" id="studentPasswordInput" placeholder="Twoje hasło">
+      <div id="studentPasswordConfirmWrap">
+        <label class="field-label" for="studentPasswordConfirm">Powtórz hasło (tylko przy pierwszym logowaniu)</label>
+        <input class="field" type="password" id="studentPasswordConfirm" placeholder="Powtórz hasło">
+      </div>
+      <div class="gate-error" id="studentError" style="display:none;">Nieprawidłowe hasło.</div>
+      <button class="primary-btn" onclick="enterAsStudent()">Wejdź</button>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">
+        Zapomniałeś/aś hasła? Poproś prowadzącego o zresetowanie go.
+      </div>
+    </div>
+
+    <div id="teacherGateFields" style="display:none;">
+      <label class="field-label" for="teacherCodeInput">Kod dostępu prowadzącego</label>
+      <input class="field" type="password" id="teacherCodeInput" placeholder="Kod ustalony na start aplikacji">
+      <div class="gate-error" id="teacherError" style="display:none;">Nieprawidłowy kod dostępu.</div>
+      <button class="primary-btn" onclick="enterAsTeacher()">Wejdź</button>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:10px;">
+        Domyślny kod: <strong>promotor2026</strong> (można go zmienić w kodzie źródłowym pliku, zmienna TEACHER_CODE).
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="app-shell">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main" id="main"></div>
+  </div>
+</div>
+
+<script>
+const TEACHER_CODE = "promotor2026";
+const QUICK_TITLES = ["Tytuł pracy", "Plan pracy", "Wstęp", "Wzór ankiety", "Przegląd literatury", "Metodologia"];
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // limit na pojedynczy plik (magazyn plików Supabase pozwala na znacznie więcej)
+
+const SUPABASE_URL = "https://onjwgzcyebgqquqnkggl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_OyxbHttvB5ZJla2hRR44pA_8fSBR0eT";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const ATTACHMENTS_BUCKET = "attachments";
+
+let state = { students: [], tasksByStudent: {} };
+let currentRole = null;        // 'student' | 'teacher'
+let currentStudentId = null;
+let selectedStudentId = null;  // which student the teacher is viewing
+let selectedTaskId = null;
+let dataLoaded = false;
+
+// ---------- Storage (Supabase) ----------
+// Studenci i zadania trzymani są w bazie Supabase (tabele "students" i "tasks"),
+// a załączniki jako osobne pliki w magazynie Supabase Storage (bucket "attachments").
+async function loadData(){
+  state = { students: [], tasksByStudent: {} };
+  const { data: students, error: sErr } = await db.from('students').select('*').order('created_at');
+  if(sErr){
+    console.error("Nie udało się pobrać listy studentów:", sErr);
+    alert("Nie udało się połączyć z bazą danych. Sprawdź połączenie z internetem i spróbuj odświeżyć stronę.");
+    dataLoaded = true;
+    return;
+  }
+  state.students = (students || []).map(s => ({ id: s.id, name: s.name, passwordHash: s.password_hash }));
+  state.students.forEach(s => { state.tasksByStudent[s.id] = []; });
+
+  const { data: tasks, error: tErr } = await db.from('tasks').select('*').order('created_at');
+  if(tErr){
+    console.error("Nie udało się pobrać zadań:", tErr);
+  } else {
+    (tasks || []).forEach(t => {
+      const task = { id: t.id, title: t.title, description: t.description, deadline: t.deadline, events: t.events || [] };
+      if(!state.tasksByStudent[t.student_id]) state.tasksByStudent[t.student_id] = [];
+      state.tasksByStudent[t.student_id].push(task);
+    });
+  }
+  dataLoaded = true;
+}
+
+async function createStudentRecord(name, passwordHash){
+  const { data, error } = await db.from('students').insert({ name, password_hash: passwordHash }).select().single();
+  if(error){
+    console.error("Nie udało się utworzyć konta studenta:", error);
+    alert("Nie udało się utworzyć konta. Sprawdź połączenie z internetem i spróbuj ponownie.");
+    return null;
+  }
+  const record = { id: data.id, name: data.name, passwordHash: data.password_hash };
+  state.students.push(record);
+  state.tasksByStudent[record.id] = [];
+  return record;
+}
+
+async function updateStudentPassword(studentId, passwordHash){
+  const { error } = await db.from('students').update({ password_hash: passwordHash }).eq('id', studentId);
+  if(error){
+    console.error("Nie udało się zapisać hasła:", error);
+    alert("Nie udało się zapisać hasła. Spróbuj ponownie.");
+    return false;
+  }
+  return true;
+}
+
+async function createTaskRecord(studentId, title, description, deadline){
+  const { data, error } = await db.from('tasks').insert({
+    student_id: studentId, title, description, deadline, events: []
+  }).select().single();
+  if(error){
+    console.error("Nie udało się dodać zadania:", error);
+    alert("Nie udało się zapisać zadania. Spróbuj ponownie.");
+    return null;
+  }
+  return { id: data.id, title: data.title, description: data.description, deadline: data.deadline, events: [] };
+}
+
+async function pushTaskEvent(studentId, taskId, event){
+  const task = (state.tasksByStudent[studentId] || []).find(t => t.id === taskId);
+  if(!task) return false;
+  const newEvents = [...task.events, event];
+  const { error } = await db.from('tasks').update({ events: newEvents }).eq('id', taskId);
+  if(error){
+    console.error("Nie udało się zapisać zmian w zadaniu:", error);
+    alert("Nie udało się zapisać zmian. Spróbuj ponownie.");
+    return false;
+  }
+  task.events = newEvents;
+  return true;
+}
+
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+async function hashPassword(pw){
+  const enc = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function formatBytes(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return Math.round(bytes/1024) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+async function readAttachmentFromInput(inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return null;
+  if(file.size > MAX_FILE_BYTES){
+    alert(`Plik jest za duży (${formatBytes(file.size)}). Maksymalny rozmiar to ${formatBytes(MAX_FILE_BYTES)}.`);
+    return 'too_large';
+  }
+  const path = `${uid()}-${file.name}`;
+  const { error } = await db.storage.from(ATTACHMENTS_BUCKET).upload(path, file);
+  if(error){
+    console.error("Nie udało się zapisać załącznika:", error);
+    return 'save_failed';
+  }
+  const { data: urlData } = db.storage.from(ATTACHMENTS_BUCKET).getPublicUrl(path);
+  return { name: file.name, size: file.size, url: urlData.publicUrl };
+}
+
+// ---------- Gate ----------
+function selectRole(role){
+  currentRole = role;
+  document.getElementById('roleStudentBtn').classList.toggle('active', role==='student');
+  document.getElementById('roleTeacherBtn').classList.toggle('active', role==='teacher');
+  document.getElementById('studentGateFields').style.display = role==='student' ? 'block' : 'none';
+  document.getElementById('teacherGateFields').style.display = role==='teacher' ? 'block' : 'none';
+}
+
+let pickedStudentId = null;
+function renderStudentPickList(){
+  const wrap = document.getElementById('studentPickList');
+  if(!state.students.length){
+    wrap.innerHTML = '<span style="color:var(--ink-soft);font-size:13px;">Brak studentów — podaj imię i nazwisko poniżej.</span>';
+    return;
+  }
+  wrap.innerHTML = state.students.map(s =>
+    `<button class="student-chip ${pickedStudentId===s.id?'selected':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`
+  ).join('');
+}
+function pickStudent(id){
+  pickedStudentId = id;
+  document.getElementById('studentNameInput').value = '';
+  document.getElementById('studentPasswordConfirmWrap').style.display = 'none';
+  renderStudentPickList();
+}
+function clearStudentPick(){
+  pickedStudentId = null;
+  document.getElementById('studentPasswordConfirmWrap').style.display = 'block';
+  renderStudentPickList();
+}
+
+async function enterAsStudent(){
+  const errorEl = document.getElementById('studentError');
+  errorEl.style.display = 'none';
+  const password = document.getElementById('studentPasswordInput').value;
+  const confirmPassword = document.getElementById('studentPasswordConfirm').value;
+
+  let studentRecord = null;
+  if(pickedStudentId){
+    studentRecord = state.students.find(s => s.id === pickedStudentId);
+  } else {
+    const typedName = document.getElementById('studentNameInput').value.trim();
+    if(!typedName){ alert("Podaj imię i nazwisko albo wybierz się z listy."); return; }
+    studentRecord = state.students.find(s => s.name.toLowerCase() === typedName.toLowerCase());
+    if(!studentRecord){
+      // rejestracja nowego studenta — hasło jest obowiązkowe
+      if(!password || password.length < 4){ alert("Ustaw hasło o długości co najmniej 4 znaków."); return; }
+      if(password !== confirmPassword){ alert("Podane hasła nie są takie same."); return; }
+      const passwordHash = await hashPassword(password);
+      const record = await createStudentRecord(typedName, passwordHash);
+      if(!record) return;
+      currentRole = 'student';
+      currentStudentId = record.id;
+      enterApp();
+      return;
+    }
+  }
+
+  // logowanie na istniejące konto
+  if(!studentRecord.passwordHash){
+    // konto założone jeszcze przed wprowadzeniem haseł — ustawiamy je teraz
+    if(!password || password.length < 4){ alert("To Twoje pierwsze logowanie z hasłem — ustaw hasło o długości co najmniej 4 znaków."); return; }
+    if(password !== confirmPassword){ alert("Podane hasła nie są takie same."); return; }
+    const hash = await hashPassword(password);
+    const ok = await updateStudentPassword(studentRecord.id, hash);
+    if(!ok) return;
+    studentRecord.passwordHash = hash;
+  } else {
+    const hash = await hashPassword(password);
+    if(hash !== studentRecord.passwordHash){
+      errorEl.textContent = "Nieprawidłowe hasło.";
+      errorEl.style.display = 'block';
+      return;
+    }
+  }
+  currentRole = 'student';
+  currentStudentId = studentRecord.id;
+  enterApp();
+}
+
+function enterAsTeacher(){
+  const code = document.getElementById('teacherCodeInput').value;
+  if(code !== TEACHER_CODE){
+    document.getElementById('teacherError').style.display = 'block';
+    return;
+  }
+  document.getElementById('teacherError').style.display = 'none';
+  currentRole = 'teacher';
+  enterApp();
+}
+
+function enterApp(){
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  selectedTaskId = null;
+  if(currentRole === 'teacher'){
+    selectedStudentId = state.students[0] ? state.students[0].id : null;
+  }
+  renderApp();
+}
+
+function logout(){
+  currentRole = null;
+  currentStudentId = null;
+  selectedStudentId = null;
+  selectedTaskId = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('teacherCodeInput').value = '';
+  document.getElementById('studentPasswordInput').value = '';
+  document.getElementById('studentPasswordConfirm').value = '';
+  document.getElementById('studentNameInput').value = '';
+  pickedStudentId = null;
+  renderStudentPickList();
+}
+
+// ---------- Status helpers ----------
+function taskStatus(task){
+  if(!task.events.length) return { key:'todo', label:'Do zrobienia' };
+  const last = task.events[task.events.length-1];
+  if(last.type === 'submission') return { key:'review', label:'Do sprawdzenia' };
+  if(last.type === 'review'){
+    return last.decision === 'accepted'
+      ? { key:'accepted', label:'Zaakceptowane' }
+      : { key:'rework', label:'Do poprawy' };
+  }
+  return { key:'todo', label:'Do zrobienia' };
+}
+
+function statusPillHtml(status){
+  return `<span class="status-pill status-${status.key}"><span class="status-dot"></span>${status.label}</span>`;
+}
+
+// ---------- Rendering ----------
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.innerText = str;
+  return d.innerHTML;
+}
+
+function renderApp(){
+  renderSidebar();
+  renderMain();
+}
+
+function renderSidebar(){
+  const el = document.getElementById('sidebar');
+  if(currentRole === 'teacher'){
+    const rows = state.students.map(s => {
+      const tasks = state.tasksByStudent[s.id] || [];
+      const pending = tasks.filter(t => taskStatus(t).key === 'review').length;
+      return `<div class="sidebar-item ${s.id===selectedStudentId?'active':''}">
+        <span onclick="viewStudent('${s.id}')" style="flex:1;cursor:pointer;">${escapeHtml(s.name)}</span>
+        ${pending ? `<span class="count">${pending} do sprawdzenia</span>` : ''}
+        <button type="button" title="Zresetuj hasło studenta" onclick="event.stopPropagation(); resetStudentPassword('${s.id}')" style="background:none;color:var(--ink-soft);font-size:13px;padding:0 0 0 8px;">🔑</button>
+      </div>`;
+    }).join('') || '<div style="color:var(--ink-soft);font-size:13px;padding:8px 10px;">Brak studentów.</div>';
+
+    el.innerHTML = `
+      <div class="brand">
+        <h1>Konsultacje pracy</h1>
+        <div class="who">Widok prowadzącego</div>
+      </div>
+      <div class="sidebar-item ${selectedStudentId==='__overview__'?'active':''}" onclick="viewOverview()">📊 Postępy grupy</div>
+      <div class="sidebar-section-label">Studenci</div>
+      <div class="sidebar-list">${rows}</div>
+      <div class="add-student-row">
+        <input id="newStudentName" placeholder="Nowy student…" onkeydown="if(event.key==='Enter')addStudent()">
+        <button onclick="addStudent()">Dodaj</button>
+      </div>
+      <button class="logout-link" onclick="logout()">Wyloguj się</button>
+    `;
+  } else {
+    const student = state.students.find(s => s.id === currentStudentId);
+    el.innerHTML = `
+      <div class="brand">
+        <h1>Konsultacje pracy</h1>
+        <div class="who">${student ? escapeHtml(student.name) : ''}</div>
+      </div>
+      <div class="sidebar-section-label">Twoje zadania</div>
+      <div class="sidebar-list" style="font-size:13px;color:var(--ink-soft);">Lista zadań widoczna jest po prawej stronie.</div>
+      <button class="logout-link" onclick="logout()">To nie ja — wyloguj</button>
+    `;
+  }
+}
+
+async function addStudent(){
+  const input = document.getElementById('newStudentName');
+  const name = input.value.trim();
+  if(!name) return;
+  const record = await createStudentRecord(name, null);
+  if(!record) return;
+  input.value = '';
+  if(!selectedStudentId) selectedStudentId = record.id;
+  renderApp();
+}
+
+function viewStudent(id){
+  selectedStudentId = id;
+  selectedTaskId = null;
+  renderApp();
+}
+
+function viewOverview(){
+  selectedStudentId = '__overview__';
+  selectedTaskId = null;
+  renderApp();
+}
+
+async function resetStudentPassword(studentId){
+  const student = state.students.find(s => s.id === studentId);
+  if(!student) return;
+  const newPass = prompt(`Nowe hasło dla ${student.name} (min. 4 znaki). Przekaż je studentowi osobiście.`);
+  if(newPass === null) return;
+  if(newPass.length < 4){ alert("Hasło musi mieć co najmniej 4 znaki."); return; }
+  const hash = await hashPassword(newPass);
+  const ok = await updateStudentPassword(studentId, hash);
+  if(!ok) return;
+  student.passwordHash = hash;
+  alert(`Hasło dla ${student.name} zostało ustawione. Poinformuj studenta o nowym haśle.`);
+}
+
+// ---------- Postępy / porównanie z grupą ----------
+function studentProgress(studentId){
+  const tasks = state.tasksByStudent[studentId] || [];
+  if(!tasks.length) return null;
+  const accepted = tasks.filter(t => taskStatus(t).key === 'accepted').length;
+  return Math.round(100 * accepted / tasks.length);
+}
+
+function groupProgressData(){
+  return state.students.map(s => ({ id: s.id, name: s.name, progress: studentProgress(s.id) }));
+}
+
+function groupAverage(data){
+  const withProgress = data.filter(d => d.progress !== null);
+  if(!withProgress.length) return null;
+  return Math.round(withProgress.reduce((sum,d) => sum + d.progress, 0) / withProgress.length);
+}
+
+function renderOverview(el){
+  const data = groupProgressData();
+  const avg = groupAverage(data);
+  const sorted = [...data].sort((a,b) => (b.progress ?? -1) - (a.progress ?? -1));
+  const rows = sorted.map(d => {
+    const pct = d.progress === null ? 0 : d.progress;
+    const behind = avg !== null && d.progress !== null && d.progress < avg;
+    return `<div class="progress-row">
+      <div class="name">${escapeHtml(d.name)}</div>
+      <div class="progress-track">
+        <div class="progress-fill ${behind?'behind':''}" style="width:${pct}%;"></div>
+        ${avg !== null ? `<div class="avg-marker" style="left:${avg}%;"></div>` : ''}
+      </div>
+      <div class="progress-pct">${d.progress === null ? '—' : d.progress + '%'}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="main-header">
+      <h2>Postępy grupy</h2>
+      <div class="sub">Odsetek zaakceptowanych zadań na tle średniej${avg !== null ? ` — średnia grupy: ${avg}%` : ''}</div>
+    </div>
+    <div class="progress-legend">
+      <span class="dot" style="background:var(--navy);"></span>na poziomie lub powyżej średniej
+      <span class="dot" style="background:var(--rust);"></span>w tyle za średnią
+      <span class="dot" style="background:var(--gold);"></span>średnia grupy
+    </div>
+    <div class="progress-chart">
+      ${rows || '<div class="empty-state">Brak studentów z przypisanymi zadaniami.</div>'}
+    </div>
+  `;
+}
+
+function renderStudentProgressWidget(studentId){
+  const data = groupProgressData();
+  const avg = groupAverage(data);
+  const mine = data.find(d => d.id === studentId);
+  const myProgress = mine ? mine.progress : null;
+  if(myProgress === null || avg === null) return '';
+  const behind = myProgress < avg;
+  return `<div class="new-task-card" style="margin-bottom:20px;">
+    <h3 style="margin-bottom:14px;">Twój postęp na tle grupy</h3>
+    <div class="progress-row">
+      <div class="name">Ty</div>
+      <div class="progress-track">
+        <div class="progress-fill ${behind?'behind':''}" style="width:${myProgress}%;"></div>
+        <div class="avg-marker" style="left:${avg}%;"></div>
+      </div>
+      <div class="progress-pct">${myProgress}%</div>
+    </div>
+    <div class="file-hint">Złota linia = średnia grupy (${avg}%)${behind ? ' — jesteś nieco w tyle, ale wciąż jest czas nadrobić.' : ' — jesteś na poziomie średniej grupy lub powyżej niej.'}</div>
+  </div>`;
+}
+
+function renderMain(){
+  const el = document.getElementById('main');
+  if(currentRole === 'teacher'){
+    if(selectedStudentId === '__overview__'){
+      renderOverview(el);
+      return;
+    }
+    if(!selectedStudentId){
+      el.innerHTML = `<div class="empty-state">Dodaj pierwszego studenta w panelu po lewej, aby wyznaczyć mu zadania.</div>`;
+      return;
+    }
+    const student = state.students.find(s => s.id === selectedStudentId);
+    if(selectedTaskId){
+      renderTaskDetail(el, selectedStudentId, selectedTaskId);
+      return;
+    }
+    const tasks = state.tasksByStudent[selectedStudentId] || [];
+    el.innerHTML = `
+      <div class="main-header">
+        <h2>${escapeHtml(student.name)}</h2>
+        <div class="sub">Zadania i etapy pracy dyplomowej</div>
+      </div>
+      <div class="new-task-card">
+        <h3>Nowe zadanie</h3>
+        <div class="quick-titles">
+          ${QUICK_TITLES.map(t => `<button class="quick-title-btn" onclick="setTaskTitle('${escapeHtml(t)}')">${t}</button>`).join('')}
+        </div>
+        <div class="form-row">
+          <label for="newTaskTitle">Tytuł zadania</label>
+          <input id="newTaskTitle" placeholder="np. Wstęp">
+        </div>
+        <div class="form-row">
+          <label for="newTaskDesc">Opis / wymagania (widoczne dla studenta)</label>
+          <textarea id="newTaskDesc" placeholder="Opisz, czego dokładnie oczekujesz w tym etapie…"></textarea>
+        </div>
+        <div class="form-row" style="max-width:220px;">
+          <label for="newTaskDeadline">Termin (opcjonalnie)</label>
+          <input type="date" id="newTaskDeadline">
+        </div>
+        <button class="primary-btn" onclick="addTask()">Wyznacz zadanie</button>
+      </div>
+      ${renderTaskList(tasks, true)}
+    `;
+  } else {
+    if(selectedTaskId){
+      renderTaskDetail(el, currentStudentId, selectedTaskId);
+      return;
+    }
+    const tasks = state.tasksByStudent[currentStudentId] || [];
+    el.innerHTML = `
+      <div class="main-header">
+        <h2>Twoje zadania</h2>
+        <div class="sub">Kliknij zadanie, aby przesłać realizację lub zobaczyć komentarz</div>
+      </div>
+      ${renderStudentProgressWidget(currentStudentId)}
+      ${renderTaskList(tasks, false)}
+    `;
+  }
+}
+
+function setTaskTitle(t){
+  document.getElementById('newTaskTitle').value = t;
+}
+
+function renderTaskList(tasks, isTeacher){
+  if(!tasks.length){
+    return `<div class="empty-state">${isTeacher ? 'Brak zadań — dodaj pierwsze powyżej.' : 'Prowadzący nie wyznaczył jeszcze żadnych zadań.'}</div>`;
+  }
+  return tasks.map((t, i) => {
+    const status = taskStatus(t);
+    const overdue = isOverdue(t, status);
+    return `<div class="task-row" onclick="openTask('${t.id}')">
+      <div class="task-order">${i+1}.</div>
+      <div class="task-row-main">
+        <div class="task-row-title">${escapeHtml(t.title)}</div>
+        <div class="task-row-desc">${escapeHtml(t.description || '')}</div>
+      </div>
+      <div class="task-row-right">
+        ${statusPillHtml(status)}
+        ${t.deadline ? `<span class="deadline-tag ${overdue?'overdue':''}">${overdue?'po terminie · ':'termin: '}${formatDeadline(t.deadline)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function addTask(){
+  const title = document.getElementById('newTaskTitle').value.trim();
+  const desc = document.getElementById('newTaskDesc').value.trim();
+  const deadline = document.getElementById('newTaskDeadline').value || null;
+  if(!title){ alert("Podaj tytuł zadania."); return; }
+  const task = await createTaskRecord(selectedStudentId, title, desc, deadline);
+  if(!task) return;
+  if(!state.tasksByStudent[selectedStudentId]) state.tasksByStudent[selectedStudentId] = [];
+  state.tasksByStudent[selectedStudentId].push(task);
+  renderApp();
+}
+
+function formatDeadline(dateStr){
+  const [y,m,d] = dateStr.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function isOverdue(task, status){
+  if(!task.deadline || status.key === 'accepted') return false;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const due = new Date(task.deadline + 'T00:00:00');
+  return due < today;
+}
+
+function openTask(id){
+  selectedTaskId = id;
+  renderApp();
+}
+function closeTask(){
+  selectedTaskId = null;
+  renderApp();
+}
+
+function renderTaskDetail(el, studentId, taskId){
+  const tasks = state.tasksByStudent[studentId] || [];
+  const task = tasks.find(t => t.id === taskId);
+  if(!task){ selectedTaskId = null; renderMain(); return; }
+  const status = taskStatus(task);
+
+  const timelineHtml = task.events.map(ev => {
+    const attachmentHtml = ev.attachment
+      ? `<a class="attachment-link" href="${ev.attachment.url}" target="_blank" rel="noopener">📎 ${escapeHtml(ev.attachment.name)} · ${formatBytes(ev.attachment.size)}</a>`
+      : '';
+    if(ev.type === 'submission'){
+      return `<div class="timeline-item">
+        <div class="timeline-marker submission"></div>
+        <div class="timeline-body">
+          <div class="timeline-meta">Przesłano przez studenta — ${formatDate(ev.timestamp)}</div>
+          ${ev.text ? `<div class="timeline-text">${escapeHtml(ev.text)}</div>` : ''}
+          ${attachmentHtml}
+        </div>
+      </div>`;
+    }
+    const decisionLabel = ev.decision === 'accepted' ? 'Zaakceptowano' : 'Do poprawy';
+    const decisionClass = ev.decision === 'accepted' ? 'status-accepted' : 'status-rework';
+    return `<div class="timeline-item">
+      <div class="timeline-marker ${ev.decision === 'accepted' ? 'accepted' : 'rework'}"></div>
+      <div class="timeline-body">
+        <div class="timeline-meta">Ocena prowadzącego — ${formatDate(ev.timestamp)}</div>
+        <span class="timeline-decision ${decisionClass}">${decisionLabel}</span>
+        ${ev.text ? `<div class="timeline-text">${escapeHtml(ev.text)}</div>` : ''}
+        ${attachmentHtml}
+      </div>
+    </div>`;
+  }).join('') || `<div style="color:var(--ink-soft);font-size:13.5px;">Jeszcze nic nie przesłano.</div>`;
+
+  let actionHtml = '';
+  if(currentRole === 'student'){
+    actionHtml = `
+      <div class="action-box">
+        <h4>Prześlij realizację</h4>
+        <div class="form-row">
+          <textarea id="submissionText" placeholder="Wklej treść lub opisz, co przygotowałeś/aś…"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="submissionFile">Załącz plik (opcjonalnie, maks. ${formatBytes(MAX_FILE_BYTES)})</label>
+          <input type="file" id="submissionFile">
+        </div>
+        <button class="primary-btn" onclick="submitWork('${studentId}','${taskId}')">Wyślij do sprawdzenia</button>
+      </div>
+    `;
+  } else {
+    const hasSubmission = status.key === 'review';
+    actionHtml = `
+      <div class="action-box">
+        <h4>Ocena</h4>
+        ${hasSubmission ? `
+          <div class="form-row">
+            <label for="feedbackText">Komentarz (widoczny dla studenta)</label>
+            <textarea id="feedbackText" placeholder="Co poprawić albo dlaczego akceptujesz…"></textarea>
+          </div>
+          <div class="form-row">
+            <label for="feedbackFile">Załącz plik (opcjonalnie, np. wzór lub poprawiony dokument, maks. ${formatBytes(MAX_FILE_BYTES)})</label>
+            <input type="file" id="feedbackFile">
+          </div>
+          <div class="decision-row">
+            <button class="accept-btn" onclick="reviewTask('${studentId}','${taskId}','accepted')">Zatwierdź</button>
+            <button class="reject-btn" onclick="reviewTask('${studentId}','${taskId}','rejected')">Odrzuć z komentarzem</button>
+          </div>
+        ` : `<div style="color:var(--ink-soft);font-size:13.5px;">Czekasz na przesłanie pracy przez studenta, aby móc ją ocenić.</div>`}
+      </div>
+    `;
+  }
+
+  const overdueDetail = isOverdue(task, status);
+  el.innerHTML = `
+    <button class="task-detail-back" onclick="closeTask()">← Wróć do listy</button>
+    <div class="task-detail">
+      <div class="task-detail-title">${escapeHtml(task.title)}</div>
+      ${task.description ? `<div class="task-detail-desc">${escapeHtml(task.description)}</div>` : ''}
+      ${task.deadline ? `<div class="task-detail-deadline ${overdueDetail?'overdue':''}">${overdueDetail?'Termin minął: ':'Termin: '}${formatDeadline(task.deadline)}</div>` : ''}
+      ${statusPillHtml(status)}
+      <div class="timeline">${timelineHtml}</div>
+      ${actionHtml}
+    </div>
+  `;
+}
+
+function formatDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric' }) + ' ' +
+         d.toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
+}
+
+async function submitWork(studentId, taskId){
+  const text = document.getElementById('submissionText').value.trim();
+  const fileInput = document.getElementById('submissionFile');
+  const attachment = await readAttachmentFromInput(fileInput);
+  if(attachment === 'too_large') return;
+  if(attachment === 'save_failed'){ alert("Nie udało się zapisać załącznika w chmurze. Spróbuj z mniejszym plikiem albo wyślij bez załącznika."); return; }
+  if(!text && !attachment){ alert("Wpisz treść albo załącz plik przed wysłaniem."); return; }
+  const ev = { type:'submission', text, timestamp: Date.now() };
+  if(attachment) ev.attachment = attachment;
+  const ok = await pushTaskEvent(studentId, taskId, ev);
+  if(!ok) return;
+  renderApp();
+}
+
+async function reviewTask(studentId, taskId, decision){
+  const text = document.getElementById('feedbackText').value.trim();
+  const fileInput = document.getElementById('feedbackFile');
+  const attachment = await readAttachmentFromInput(fileInput);
+  if(attachment === 'too_large') return;
+  if(attachment === 'save_failed'){ alert("Nie udało się zapisać załącznika w chmurze. Spróbuj z mniejszym plikiem albo dokończ ocenę bez załącznika."); return; }
+  const ev = { type:'review', decision, text, timestamp: Date.now() };
+  if(attachment) ev.attachment = attachment;
+  const ok = await pushTaskEvent(studentId, taskId, ev);
+  if(!ok) return;
+  renderApp();
+}
+
+// ---------- Start ----------
+(async function init(){
+  await loadData();
+  renderStudentPickList();
+})();
+</script>
+</body>
+</html>
